@@ -491,25 +491,30 @@ export default function MedSenseAI() {
   };
 
   const callGemini = async (history) => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    const contents = history.map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents,
-        generationConfig: { maxOutputTokens: 1000, temperature: 0.7 },
-      }),
-    });
-    if (!response.ok) throw new Error("Erro de API " + response.status);
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  };
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        ...history.map((m) => ({
+          role: m.role === "assistant" ? "assistant" : "user",
+          content: m.content,
+        })),
+      ],
+      max_tokens: 1000,
+      temperature: 0.7,
+    }),
+  });
+  if (!response.ok) throw new Error("Erro de API " + response.status);
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "";
+};
 
   const registerTriagem = async (parsed) => {
     const triagem = {
